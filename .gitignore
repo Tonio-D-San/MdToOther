@@ -1,4 +1,6 @@
 .env
+.idea
+prompt.txt
 excels/
 Documentazione/Counterpart/immagini/
 Documentazione/Counterpart/counterpart_output/
