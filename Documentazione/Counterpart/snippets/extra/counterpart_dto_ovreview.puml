@@ -1,0 +1,89 @@
+@startuml
+title Counterpart DTOs
+
+skinparam class {
+    BackgroundColor #F0F8FF
+    BorderColor #1E90FF
+}
+
+' ==== DTO Classes ====
+class CounterpartDTORequest {
+    - name : String
+    - vatNumber : String
+    - country : String
+    - registeredOffice : String
+    - thirdPartyValue : ThirdPartyType
+    - email : String
+    - secCheckPerformed : Boolean
+    - secCheckDate : LocalDate
+    - secCheckDeadline : LocalDate
+    - secCheckOutcome : StoplightType
+    - note : String
+}
+
+class CounterpartSearchDTORequest {
+    - page : Integer
+    - pageSize : Integer
+    - sort : Set<String>
+    - ids : Set<Long>
+    - name : String
+    - vatNumber : String
+    - countries : Set<String>
+    - secCheckPerformed : Boolean
+    - secCheckDeadline : String
+    - secCheckOutcome : StoplightType
+    - projectionType : ProjectionType
+}
+
+class CounterpartUpdateItemDTORequest {
+    - id : Long
+    - nodeId : String
+    - name : String
+    - vatNumber : String
+    - country : String
+    - registeredOffice : String
+    - thirdPartyValue : ThirdPartyType
+    - email : String
+    - secCheckPerformed : Boolean
+    - secCheckDate : LocalDate
+    - secCheckDeadline : LocalDate
+    - secCheckOutcome : StoplightType
+    - note : String
+}
+
+class WrapperCounterpartCreateDTORequest {
+    - items : List<CounterpartDTORequest>
+}
+
+class WrapperCounterpartUpdateDTORequest {
+    - items : List<CounterpartUpdateItemDTORequest>
+}
+
+' ==== Enums ====
+enum ThirdPartyType {
+    RENT
+    SALE
+}
+
+enum StoplightType {
+    RED
+    YELLOW
+    GREEN
+}
+
+enum ProjectionType {
+    BASIC
+    FULL
+}
+
+' ==== Relations ====
+WrapperCounterpartCreateDTORequest --> CounterpartDTORequest : contains
+WrapperCounterpartUpdateDTORequest --> CounterpartUpdateItemDTORequest : contains
+CounterpartDTORequest --> ThirdPartyType
+CounterpartDTORequest --> StoplightType
+CounterpartSearchDTORequest --> StoplightType
+CounterpartSearchDTORequest --> ProjectionType
+CounterpartUpdateItemDTORequest --> ThirdPartyType
+CounterpartUpdateItemDTORequest --> StoplightType
+
+@enduml

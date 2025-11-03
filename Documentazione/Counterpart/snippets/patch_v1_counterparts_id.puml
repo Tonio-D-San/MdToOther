@@ -1,0 +1,43 @@
+@startuml
+title Flusso Counterpart API - PATCH /v1/counterparts/{id}
+
+actor Client as C
+participant "Counterpart API BS (borepurposingmgmt)" as API_BS
+participant "Counterpart Service BS (borepurposingmgmt)" as Service_BS
+participant "Counterpart API MS (meRepurposingReg)" as API_MS
+database "Database" as DB
+
+C -> API_BS : PATCH /v1/counterparts/{id}\nBody: CounterpartDTORequest {name, vatNumber, country, registeredOffice, ..}
+activate API_BS
+
+API_BS -> Service_BS : Invoca route interna UPDATE_COUNTERPART_BY_ID
+activate Service_BS
+
+note right of Service_BS
+Il JSON CounterpartDTORequest viene convertito in oggettoe wrappato per l'update multiplo
+WrapperCounterpartUpdateDTORequest -> JSON (prepara la richiesta per MS)
+end note
+
+Service_BS -> Service_BS : Reindirizza a route interna UPDATE_COUNTERPART_MULTI
+
+note right of Service_BS
+HTTP_METHOD = PATCH
+CONTENT_TYPE = application/json
+end note 
+
+Service_BS -> API_MS : PATCH {meRepurposingRegEndPoint}/v1/counterparts/multi\nRequest: WrapperCounterpartUpdateDTORequest { items[] }
+activate API_MS
+
+API_MS -> DB : Aggiorna record Counterpart
+DB --> API_MS : Esito aggiornamento OK / errore
+
+API_MS --> Service_BS : - Response 204 NO CONTENT \n- Error Response 400 / 404 / 500
+deactivate API_MS
+
+Service_BS --> API_BS : Restituisce Response
+deactivate Service_BS
+
+API_BS --> C : - 204 NO CONTENT \n- 400 / 404 / 500 Error Response
+deactivate API_BS
+
+@enduml

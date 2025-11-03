@@ -1,0 +1,80 @@
+@startuml
+title Component Diagram - Counterpart Flow
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #F4F9FF
+  BorderColor #4169E1
+  FontColor #000000
+}
+skinparam note {
+  BackgroundColor #FFFDE7
+  BorderColor #BDB76B
+}
+
+' --- Components ---
+rectangle "Client\n(UI / Consumer)" as Client #white
+rectangle "CounterpartAPI\n(Interface Layer)" as API
+rectangle "CounterpartService\n(Integration Layer)" as Service
+rectangle "DocumentNodeService\n(Node Management)" as NodeService
+rectangle "ExcelProcessor\n(Excel Parser)" as ExcelProcessor
+rectangle "Microservice RepurposingReg\n{platform.endpointsOrchestrated.repurposingReg}" as MS
+
+' --- Relationships ---
+Client --> API : REST Calls\n(GET, POST, PATCH, DELETE)
+API --> Service : Internal Route Calls (direct:)
+Service --> ExcelProcessor : Reads Excel file\nand produces JSON structure
+Service --> NodeService : Create & Link Node\n(for each new Counterpart)
+Service --> MS : HTTP Requests\n(GET / POST / PATCH / DELETE)\nDynamic endpoint resolution
+
+' --- Notes on API ---
+note right of API
+  Espone REST endpoints:
+  - GET /v1/counterparts/{id}
+  - PATCH /v1/counterparts/{id}
+  - POST /v1/counterparts
+  - DELETE /v1/counterparts/{id}
+  - POST /v1/counterparts/search
+  - POST /v1/counterparts/import
+
+  Ogni endpoint inoltra la richiesta
+  verso una route interna del Service.
+end note
+
+' --- Notes on Service ---
+note right of Service
+  Implementa la logica del flusso Counterpart:
+  - SEARCH_COUNTERPART: chiama MS per ricerca
+  - SEARCH_COUNTERPART_BY_ID: chiama MS per singolo id
+  - CREATE_COUNTERPART: wrappa richiesta singola in "multi"
+  - UPDATE_COUNTERPART_BY_ID: converte in update multi
+  - DELETE_COUNTERPART_BY_ID: inoltra a MS per eliminazione
+  - CREATE_COUNTERPART_EXCEL: usa ExcelProcessor per generare request JSON
+  - CREATE_NODE_FOR_COUNTERPART_LIST: crea nodi e aggiorna counterpart
+  - SEARCH_COUNTERPART_FOR_CREATE_NODE: ricerca per associare nodeId
+end note
+
+' --- Notes on ExcelProcessor ---
+note right of ExcelProcessor
+  Elabora file Excel ricevuto da /import
+  e converte i dati in una struttura
+  compatibile per la creazione multipla
+  di controparti.
+end note
+
+' --- Notes on NodeService ---
+note right of NodeService
+  Crea nodi documentali per ogni Counterpart creata.
+  Dopo la creazione, il Service aggiorna i record
+  per impostare il nodeId corrispondente.
+end note
+
+' --- Notes on MS ---
+note right of MS
+  Microservizio esterno orchestrato
+  che gestisce effettivamente i dati
+  delle CounterpartEntity.
+end note
+
+@enduml

@@ -1,0 +1,49 @@
+@startuml
+title Plant API Routes
+
+left to right direction
+
+
+skinparam rectangle {
+    BackgroundColor #E8F8F5
+    BorderColor #1ABC9C
+    Shadowing false
+}
+
+' ==== API Endpoints ====
+rectangle "/v1/plants" as PlantAPI {
+
+  [GET /{id}] --> [PlantService.SEARCH_PLANT_BY_ID]
+  [GET /{id}] --> PlantDetailDTOResponse
+  [GET /{id}] --> ErrorMessageDTO : 404/400/500
+
+  [POST /search] --> [PlantService.SEARCH_PLANT]
+  [POST /search] --> WrapperPlantDTOResponse : 200
+  [POST /search] --> ErrorMessageDTO : 500
+
+  [PATCH /{id}] --> [PlantService.UPDATE_PLANT]
+  [PATCH /{id}] --> void : 204
+  [PATCH /{id}] --> ErrorMessageDTO : 404/400/500
+}
+
+' ==== Service Routes ====
+rectangle "PlantService" as Service {
+    [SEARCH_PLANT_BY_ID]
+    [SEARCH_PLANT]
+    [UPDATE_PLANT]
+}
+
+' ==== Route Connections to External MS ====
+[SEARCH_PLANT_BY_ID] --> [External MS Endpoint] : GET /v1/plants/{id}
+[SEARCH_PLANT] --> [External MS Endpoint] : POST /v1/plants/search
+[UPDATE_PLANT] --> [External MS Endpoint] : PATCH /v1/plants/{id}
+
+' ==== Notes ====
+note as NoteApi
+  - Each endpoint maps to a Service route
+  - ErrorMessageDTO returned for standard errors
+  - DTO classes define request/response payload
+end note
+
+PlantAPI -down-> NoteApi
+@enduml

@@ -1,0 +1,161 @@
+@startuml
+title Plant DTOs Structure
+
+skinparam class {
+  BackgroundColor #F9FBFF
+  BorderColor #1E3A8A
+  ArrowColor #1E3A8A
+}
+skinparam shadowing false
+hide empty methods
+
+' ==== ENUMS (placeholders) ====
+enum PlantBoardDataType {
+  DEMOLITION
+  REMEDIATION
+  DEMOLITION_AVOIDED
+}
+
+enum Operation {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum ProjectionType {
+  BASIC
+  FULL
+}
+
+class StatsDTO {
+  - currentPage: Integer;
+  - itemsCount: Long;
+  - pageSize: Integer;
+  - pageCount: Integer;
+}
+
+' ==== REQUEST DTOs ====
+class PlantUpdateDTORequest {
+  - landAvailableHa: Double
+  - demolitionMillion: Double
+  - remediationMillion: Double
+  - demolitionAvoidedMillion: Double
+  - demolitionAvoidedNotes: String
+  - boards: List<WrapperPlantBoardDTORequest>
+}
+
+class PlantSearchDTORequest {
+  - page: Integer
+  - pageSize: Integer
+  - sort: Set<String>
+  - ids: Set<Long>
+  - name: String
+  - countries: Set<String>
+  - landAvailable: Boolean
+  - projectionType: ProjectionType
+}
+
+class WrapperPlantBoardDTORequest {
+  - operation: Operation
+  - filters: PlantBoardSearchDTORequest
+  - fields: PlantBoardFieldDTORequest
+}
+
+class PlantBoardSearchDTORequest {
+  - id: Long
+}
+
+class PlantBoardFieldDTORequest {
+  - dataType: PlantBoardDataType
+  - timelineData: List<WrapperTimelineDataDTORequest>
+}
+
+class WrapperTimelineDataDTORequest {
+  - operation: Operation
+  - filters: TimelineDataSearchDTORequest
+  - fields: TimelineDataFieldDTORequest
+}
+
+class TimelineDataSearchDTORequest {
+  - id: Long
+  - rowOrder: Integer
+  - referenceDate: LocalDate
+}
+
+class TimelineDataFieldDTORequest {
+  - rowOrder: Integer
+  - referenceDate: LocalDate
+  - label: String
+  - dataValue: Double
+}
+
+' ==== RESPONSE DTOs ====
+class WrapperPlantDTOResponse {
+  - stats: StatsDTO
+  - items: List<PlantDTOResponse>
+}
+
+class PlantDTOResponse {
+  - id: Long
+  - name: String
+  - country: String
+  - landAvailableHa: Double
+  - projectsLinked: Integer
+  - createdAt: Instant
+  - updatedAt: Instant
+}
+
+class PlantDetailDTOResponse {
+  - id: Long
+  - name: String
+  - country: String
+  - nodeId: String
+  - landAvailableHa: Double
+  - demolitionMillion: Double
+  - remediationMillion: Double
+  - demolitionAvoidedMillion: Double
+  - demolitionAvoidedNotes: String
+  - boards: List<PlantBoardDTOResponse>
+  - createdAt: Instant
+  - updatedAt: Instant
+}
+
+class PlantBoardDTOResponse {
+  - id: Long
+  - dataType: PlantBoardDataType
+  - timelineData: List<TimelineDataDTOResponse>
+  - createdAt: Instant
+  - updatedAt: Instant
+}
+
+class TimelineDataDTOResponse {
+  - id: Long
+  - rowOrder: Integer
+  - label: String
+  - dataValue: Double
+  - referenceDate: LocalDate
+  - createdAt: Instant
+  - updatedAt: Instant
+}
+
+' ==== RELATIONSHIPS ====
+PlantUpdateDTORequest --> WrapperPlantBoardDTORequest : contains
+WrapperPlantBoardDTORequest --> Operation : operation
+WrapperPlantBoardDTORequest --> PlantBoardSearchDTORequest : filters
+WrapperPlantBoardDTORequest --> PlantBoardFieldDTORequest : fields
+PlantBoardFieldDTORequest --> PlantBoardDataType : dataType
+PlantBoardFieldDTORequest --> WrapperTimelineDataDTORequest : timelineData
+WrapperTimelineDataDTORequest --> Operation : operation
+WrapperTimelineDataDTORequest --> TimelineDataSearchDTORequest : filters
+WrapperTimelineDataDTORequest --> TimelineDataFieldDTORequest : fields
+
+WrapperPlantDTOResponse --> StatsDTO : items
+WrapperPlantDTOResponse --> PlantDTOResponse : items
+PlantDetailDTOResponse --> PlantBoardDTOResponse : boards
+PlantBoardDTOResponse --> PlantBoardDataType : dataType
+PlantBoardDTOResponse --> TimelineDataDTOResponse : timelineData
+
+PlantSearchDTORequest --> ProjectionType : projectionType
+
+
+@enduml

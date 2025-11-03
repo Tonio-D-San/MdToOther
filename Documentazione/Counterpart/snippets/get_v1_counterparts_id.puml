@@ -1,0 +1,35 @@
+@startuml
+title Flusso Counterpart API - GET /v1/counterparts/{id}
+
+actor Client as C
+participant "Counterpart API BS (borepurposingmgmt)" as API_BS
+participant "Counterpart Service BS (borepurposingmgmt)" as Service_BS
+participant "Counterpart API MS (meRepurposingReg)" as API_MS
+database "Database" as DB
+
+C -> API_BS : GET /v1/counterparts/{id}
+activate API_BS
+
+API_BS -> Service_BS : Invoca route interna SEARCH_COUNTERPART_BY_ID
+activate Service_BS
+
+note right of Service_BS
+HTTP_METHOD = GET
+CONTENT_TYPE = application/json
+end note 
+
+Service_BS -> API_MS : GET {meRepurposingRegEndPoint}/v1/counterparts/{id}
+activate API_MS
+
+API_MS -> DB : Query ricerca Counterpart per ID
+DB --> API_MS : Counterpart trovato / errore
+API_MS --> Service_BS : - JSON Response 200 OK : CounterpartDetailDTOResponse {id, nodeId, name, vatNumber, ..}\n- Error Response 400 / 404 / 500
+deactivate API_MS
+
+Service_BS --> API_BS : Restituisce Response
+deactivate Service_BS
+
+API_BS --> C : - 200 OK (JSON Response)\n- 400 / 404 / 500 Error Response
+deactivate API_BS
+
+@enduml

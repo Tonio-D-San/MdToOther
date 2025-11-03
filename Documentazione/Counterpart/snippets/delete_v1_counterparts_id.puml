@@ -1,0 +1,36 @@
+@startuml
+title Flusso Counterpart API - DELETE /v1/counterparts/{id}
+
+actor Client as C
+participant "Counterpart API BS (borepurposingmgmt)" as API_BS
+participant "Counterpart Service BS (borepurposingmgmt)" as Service_BS
+participant "Counterpart API MS (meRepurposingReg)" as API_MS
+database "Database" as DB
+
+== Richiesta di eliminazione ==
+C -> API_BS : DELETE /v1/counterparts/{id}
+activate API_BS
+
+API_BS -> Service_BS : Invoca la route interna DELETE_COUNTERPART_BY_ID per la richiesta di eliminazione (id)
+activate Service_BS
+
+note right of Service_BS
+HTTP_METHOD = DELETE
+CONTENT_TYPE = application/json
+end note
+
+Service_BS -> API_MS : DELETE {meRepurposingRegEndPoint}/v1/counterparts/{id}
+activate API_MS
+
+API_MS -> DB : Query di eliminazione Counterpart
+DB --> API_MS : Esito eliminazione OK / errore
+API_MS --> Service_BS : - 204 NO CONTENT \n- Error Response 400 / 404 / 409 / 500 
+deactivate API_MS
+
+Service_BS --> API_BS : Restituisce Response
+deactivate Service_BS
+
+API_BS --> C : - 204 NO CONTENT \n- 400 / 404 / 409 / 500 Error Response 
+deactivate API_BS
+
+@enduml

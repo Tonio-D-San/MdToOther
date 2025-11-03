@@ -1,0 +1,46 @@
+@startuml
+title Component Diagram - Plant Flow
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #F4F9FF
+  BorderColor #4169E1
+  FontColor #000000
+}
+skinparam note {
+  BackgroundColor #FFFDE7
+  BorderColor #BDB76B
+}
+
+rectangle "Client\n(UI / Consumer)" as Client #white
+rectangle "PlantAPI\nExtends ApiBaseRouteBuilder" as API
+rectangle "PlantService\nExtends ServiceBaseRouteBuilder" as Service
+rectangle "Microservice RepurposingReg\n{platform.endpointsOrchestrated.repurposingReg}" as MS
+
+' --- Relationships ---
+Client --> API : HTTP REST Calls\n(GET, POST, PATCH)
+API --> Service : Route Calls
+Service --> MS : HTTP Requests\n(GET / POST / PATCH)\nDynamic endpoint
+
+' --- Notes ---
+note right of API
+  Espone REST endpoints:
+  - GET /v1/plants/{id}
+  - POST /v1/plants/search
+  - PATCH /v1/plants/{id}
+end note
+
+note right of Service
+  Gestisce logica d'integrazione:
+  - Imposta headers e HTTP method
+  - Chiama endpoint esterno (meRepurposingReg)
+end note
+
+note right of MS
+  Microservizio esterno orchestrato
+  che gestisce effettivamente i dati
+  delle PlantEntity
+end note
+
+@enduml

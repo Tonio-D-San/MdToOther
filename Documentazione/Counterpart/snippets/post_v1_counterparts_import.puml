@@ -1,0 +1,101 @@
+@startuml
+title Flusso Counterpart API - POST /v1/counterparts/import
+
+actor Client as C
+participant "Counterpart API BS (borepurposingmgmt)" as API_BS
+participant "Counterpart Service BS (borepurposingmgmt)" as Service_BS
+participant "Counterpart API MS (meRepurposingReg)" as API_MS
+participant "Document Node Service" as NODE_SRV
+database "Database" as DB
+
+== Upload e parsing file ==
+C -> API_BS : POST /v1/counterparts/import\nBody: file Excel (.xlsx)
+activate API_BS
+
+API_BS -> Service_BS : Invoca route interna CREATE_COUNTERPART_EXCEL
+activate Service_BS
+
+note right of Service_BS
+Utilizza ExcelProcessor per leggere e convertire i dati del file Excel.
+end note
+
+Service_BS -> Service_BS : ExcelProcessor → WrapperCounterpartCreateDTORequest { items[] }
+
+note right of Service_BS
+WrapperCounterpartCreateDTORequest { items[] } -> JSON
+end note
+
+== Richiesta di creazione ==
+Service_BS -> Service_BS : Inoltra la richiesta a CREATE_COUNTERPART_MULTI 
+
+note right of Service_BS
+HTTP_METHOD = POST
+CONTENT_TYPE = application/json
+end note 
+
+Service_BS -> API_MS : POST {meRepurposingRegEndPoint}/v1/counterparts/multi\nRequest: WrapperCounterpartCreateDTORequest{ items[] }
+activate API_MS
+
+API_MS -> DB : Inserisce nuovi record Counterpart
+DB --> API_MS : Esito creazione OK / errore
+API_MS --> Service_BS : - JSON Response 201 CREATED: CreateMultiDTOResponse { ids[] } \n- Error Response 400 / 409 / 500
+deactivate API_MS
+
+== Creazione asincrona dei document node ==
+note right of Service_BS
+Il servizio avvia in parallelo il flusso per creare i "document node" e aggiornare i Counterpart con il nodeId.
+end note
+
+Service_BS -> Service_BS : Avvia CREATE_NODE_FOR_COUNTERPART_LIST
+activate Service_BS
+
+Service_BS -> Service_BS : JSON → CreateMultiDTOResponse\nRecupera lista ID counterpart 
+
+== Ricerca dei counterpart creati ==
+Service_BS -> Service_BS : Invoca il processo di ricerca dei Counterpart creati per leggerne i dati SEARCH_COUNTERPART_FOR_CREATE_NODE
+loop Per ogni pagina di risultati
+    Service_BS -> Service_BS : Invoca route interna SEARCH_COUNTERPART
+    
+    note right of Service_BS
+    HTTP_METHOD = POST
+    CONTENT_TYPE = application/json
+    end note 
+
+    Service_BS -> API_MS : POST {meRepurposingRegEndPoint}/v1/counterparts/search\nRequest: CounterpartSearchDTORequest { ids[], page, pageSize, name, vatNumber, countries[], ..}
+    activate API_MS
+    API_MS -> DB : Query Counterpart per ID\ncon paginazione
+    DB --> API_MS : Esito ricerca
+    API_MS --> Service_BS : - JSON Response 200 OK: WrapperCounterpartDTOResponse { items[], stats } \n- Error Response 404 / 500
+    deactivate API_MS
+end loop
+
+== Creazione dei document node ==
+loop Per ogni Counterpart trovato
+    Service_BS -> NODE_SRV : POST /v1/documents/nodes\nBody: CreateNodeDTORequest { parentId, name, nodeType, ..}
+    activate NODE_SRV
+    NODE_SRV --> Service_BS : - 201 CREATED\nBody: NodeDTOResponse { nodeId }
+    deactivate NODE_SRV
+    Service_BS -> Service_BS : Aggiorna lista Counterpart con nodeId
+end loop
+
+== Aggiornamento finale dei Counterpart ==
+
+note right of Service_BS
+HTTP_METHOD = PATCH
+CONTENT_TYPE = application/json
+end note 
+
+Service_BS -> API_MS : PATCH {meRepurposingRegEndPoint}/v1/counterparts/multi\nRequest: WrapperCounterpartUpdateDTORequest { items[] }
+activate API_MS
+API_MS -> DB : Aggiorna record Counterpart con nodeId
+DB --> API_MS : Esito aggiornamento
+API_MS --> Service_BS : - 204 NO CONTENT \n- Error Response 400 / 404 / 500
+deactivate API_MS
+
+Service_BS --> API_BS : Restituisce esito
+deactivate Service_BS
+
+API_BS --> C : - 201 CREATED: CreateMultiDTOResponse { ids[] } \n- 400 / 409 / 500 Error response
+deactivate API_BS
+
+@enduml
