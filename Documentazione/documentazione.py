@@ -10,5 +10,5 @@ def main():
     write_and_convert()
 
 if __name__ == "__main__":
-    # python .\documentazione.py plant.md
+    # python .\documentazione.py plant
     main()
