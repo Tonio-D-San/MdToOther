@@ -1,4 +1,4 @@
-# **PROJECT_TASK – Descrizione dei flussi e delle API**
+# **PROJECT – Descrizione dei flussi e delle API**
 
 ## **Architettura generale**
 
@@ -26,6 +26,7 @@ Il modulo **ProjectTask API** espone quattro endpoint REST che permettono di:
 4. Aggiornare in modalità multipla campi diversi dei **Tasks** indicati, associati ad un Project.
 
 ---
+
 ## **GET /v1/projects/{projectId}/tasks**
 
 ### **Descrizione**

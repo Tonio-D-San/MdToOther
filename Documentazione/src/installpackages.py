@@ -2,12 +2,6 @@ import importlib
 import subprocess
 import sys
 
-REQUIRED_LIBRARIES = [
-    "pypandoc",
-    "plantuml",
-    "librsvg"
-]
-
 def ask_yes_no(prompt):
     while True:
         choice = input(f"{prompt} [Y/N]: ").strip().lower()
@@ -22,17 +16,12 @@ def install_missing_packages():
     from pathlib import Path
     import urllib.request
     yes_no = True
-    for package in ["pypandoc", "plantuml", "six"]:
+    for package in ["pypandoc", "plantuml", "six", "conda"]:
         try:
             importlib.import_module(package)
         except ImportError:
-            print(f"📦 Libreria mancante: {package}.")
-            if ask_yes_no(f"Vuoi installare {package}?"):
-                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-                print(f"✅ {package} installata con successo.\n")
-            else:
-                print(f"⚠️ {package} non installata.\n")
-
+            print(f"Libreria mancante: {package}.")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
     librsvg_installed = False
     try:
         result = subprocess.run(
@@ -44,7 +33,7 @@ def install_missing_packages():
         )
         if "librsvg" in result.stdout:
             librsvg_installed = True
-            print("✅ librsvg già installato con conda.")
+            print("librsvg già installato con conda.")
     except subprocess.CalledProcessError:
         pass
 
@@ -56,7 +45,7 @@ def install_missing_packages():
                 subprocess.check_call(
                     ["conda", "install", "-y", "-c", "conda-forge", "librsvg"]
                 )
-                print("✅ librsvg installato con successo via conda.\n")
+                print("librsvg installato con successo via conda.\n")
             except subprocess.CalledProcessError:
                 print("⚠️ Impossibile installare librsvg via conda. Installalo manualmente.")
         else:
@@ -71,16 +60,16 @@ def install_missing_packages():
         if ask_yes_no("Vuoi scaricare automaticamente l’ultima versione di PlantUML?"):
             try:
                 url = "https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar"
-                print(f"⬇️ Download in corso da {url}...")
+                print(f"Download in corso da {url}...")
                 urllib.request.urlretrieve(url, jar_path)
-                print(f"✅ plantuml.jar scaricato correttamente in {jar_path}\n")
+                print(f"plantuml.jar scaricato correttamente in {jar_path}\n")
             except Exception as e:
-                print(f"❌ Errore durante il download: {e}")
-                print("⚠️ Scaricalo manualmente da: https://plantuml.com/download")
+                print(f"Errore durante il download: {e}")
+                print("Scaricalo manualmente da: https://plantuml.com/download")
         else:
-            print("⚠️ plantuml.jar non scaricato.")
+            print("plantuml.jar non scaricato.")
     else:
-        print(f"✅ plantuml.jar già presente in {jar_path}")
+        print(f"plantuml.jar già presente in {jar_path}")
     return yes_no
 
 def __init__():

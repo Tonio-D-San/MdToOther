@@ -73,7 +73,7 @@ def add_extra_media(text, extra_image_dir, extra_snippet_dir, supported_ext=None
                     except Exception as e:
                         snippet_text = f"# Errore nella lettura del file: {e}"
                     text += f"```{ext}\n{snippet_text}\n```\n"
-            print(f"🖼️  Aggiunte {len(extra_imgs)} immagini extra e relativi snippet")
+            print(f"Aggiunte {len(extra_imgs)} immagini extra e relativi snippet")
     return text
 
 def insert_media(text, image_dir, code_dir, supported_ext=None):

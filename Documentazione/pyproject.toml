@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Tool per generare documentazione con immagini e snippet"
 authors = [{ name = "Antonio Sansonne" }]
 requires-python = ">=3.8"
-dependencies = ["pypandoc", "plantuml"]
+dependencies = ["pypandoc", "plantuml", "six", "conda", "librsvg"]
 
 [project.scripts]
 documenta = "documentazione:main"
