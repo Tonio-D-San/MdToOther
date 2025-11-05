@@ -2,42 +2,75 @@
 title Flusso Counterpart API - PATCH /v1/counterparts/{id}
 
 actor Client as C
-participant "Counterpart API BS (borepurposingmgmt)" as API_BS
-participant "Counterpart Service BS (borepurposingmgmt)" as Service_BS
-participant "Counterpart API MS (meRepurposingReg)" as API_MS
+participant "Counterpart BS (borepurposingmgmt)" as BS
+participant "Counterpart MS (meRepurposingReg)" as MS
+participant "DocumentNode MS (meEcDocument)" as DMS
 database "Database" as DB
 
-C -> API_BS : PATCH /v1/counterparts/{id}\nBody: CounterpartDTORequest {name, vatNumber, country, registeredOffice, ..}
-activate API_BS
+== Richiesta di aggiornamento ==
+C -> BS : PATCH /v1/counterparts/{id}\nBody: CounterpartDTORequest {name, vatNumber, country, registeredOffice, ...}
+activate BS
 
-API_BS -> Service_BS : Invoca route interna UPDATE_COUNTERPART_BY_ID
-activate Service_BS
-
-note right of Service_BS
-Il JSON CounterpartDTORequest viene convertito in oggettoe wrappato per l'update multiplo
-WrapperCounterpartUpdateDTORequest -> JSON (prepara la richiesta per MS)
+note right of BS
+Il JSON CounterpartDTORequest viene
+wrappato per l'update multiplo ->
+WrapperCounterpartUpdateDTORequest
 end note
 
-Service_BS -> Service_BS : Reindirizza a route interna UPDATE_COUNTERPART_MULTI
-
-note right of Service_BS
+note right of BS
 HTTP_METHOD = PATCH
 CONTENT_TYPE = application/json
-end note 
+end note
 
-Service_BS -> API_MS : PATCH {meRepurposingRegEndPoint}/v1/counterparts/multi\nRequest: WrapperCounterpartUpdateDTORequest { items[] }
-activate API_MS
+BS -> MS : PATCH {meRepurposingRegEndPoint}/v1/counterparts/multi\nBody: WrapperCounterpartUpdateDTORequest { items[] }
+activate MS
 
-API_MS -> DB : Aggiorna record Counterpart
-DB --> API_MS : Esito aggiornamento OK / errore
+MS -> DB : Aggiorna record Counterpart
+DB --> MS : Esito aggiornamento OK / errore
+MS --> BS : - 204 NO CONTENT \n- 400 / 404 / 500 Error Response
+deactivate MS
 
-API_MS --> Service_BS : - Response 204 NO CONTENT \n- Error Response 400 / 404 / 500
-deactivate API_MS
+== Flusso asincrono: aggiornamento nodo documento ==
+note right of BS
+Inizio del processo asincrono
+end note
 
-Service_BS --> API_BS : Restituisce Response
-deactivate Service_BS
+BS -> BS : CHECK_UPDATE_NODE_FOR_UPDATE_COUNTERPART
+activate BS
 
-API_BS --> C : - 204 NO CONTENT \n- 400 / 404 / 500 Error Response
-deactivate API_BS
+BS -> MS : GET {meRepurposingRegEndPoint}/v1/counterparts/{id}
+activate MS
+MS -> DB : Ricerca Counterpart per ID
+DB --> MS : Esito ricerca OK / errore
+MS --> BS : - 200 OK JSON Response CounterpartDetailDTOResponse { id, name, nodeId, .. } \n- 400 / 404 / 500 Error response
+deactivate MS
+
+note right of BS
+Valuta se il node è da rinominare o da spostare
+in base alle variazioni di name e/o country di Counterpart
+end note
+alt Node da rinominare
+    BS -> DMS : RENAME_NODE
+    activate DMS
+    DMS -> DMS : UPDATE_NODE \nPUT /v1/documents/nodes/{nodeId}\nBody: UpdateNodeDTORequest{newValue, operationType}
+    DMS --> BS : 200 OK
+    deactivate DMS
+else Node da spostare
+    BS -> DMS : MOVE_NODE
+    activate DMS
+    DMS -> DMS : UPDATE_NODE \nPUT /v1/documents/nodes/{nodeId}\nBody: UpdateNodeDTORequest{newValue, operationType}
+    DMS --> BS : 200 OK
+    deactivate DMS
+else Nessuna modifica necessaria
+    note right of BS
+    Nessuna azione sul nodo documento.
+    end note
+end
+
+deactivate BS
+
+== Risposta al client ==
+BS --> C : - 204 NO CONTENT \n- 400 / 404 / 500 Error Response
+deactivate BS
 
 @enduml

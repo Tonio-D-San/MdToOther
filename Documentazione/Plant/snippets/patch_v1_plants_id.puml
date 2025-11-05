@@ -2,34 +2,27 @@
 title Flusso Plant API - PATCH /v1/plants/{id}
 
 actor Client as C
-participant "Plant API BS (borepurposingmgmt)" as API_BS
-participant "Plant Service BS (borepurposingmgmt)" as Service_BS
-participant "Plant API MS (meRepurposingReg)" as API_MS
+participant "Plant BS (borepurposingmgmt)" as BS
+participant "Plant MS (meRepurposingReg)" as MS
 database "Database" as DB
 
-C -> API_BS : PATCH /v1/plants/{id}\nBody: PlantUpdateDTORequest {landAvailableHa, demolitionMillion, boards[], ..}
-activate API_BS
+C -> BS : PATCH /v1/plants/{id}\nBody: PlantUpdateDTORequest {landAvailableHa, demolitionMillion, boards[], ..}
+activate BS
 
-API_BS -> Service_BS : Invoca route interna UPDATE_PLANT
-activate Service_BS
-
-note right of Service_BS
+note right of BS
 HTTP_METHOD = PATCH
 CONTENT_TYPE = application/json
 end note
 
-Service_BS -> API_MS : PATCH {meRepurposingRegEndPoint}/v1/plants/{id}\nBody: PlantUpdateDTORequest {landAvailableHa, demolitionMillion, boards[], ..}
-activate API_MS
+BS -> MS : PATCH {meRepurposingRegEndPoint}/v1/plants/{id}\nBody: PlantUpdateDTORequest {landAvailableHa, demolitionMillion, boards[], ..}
+activate MS
 
-API_MS -> DB : Aggiorna record Plant per ID
-DB --> API_MS : Esito aggiornamento OK / errore
-API_MS --> Service_BS : - Response 204 NO CONTENT \n- Error Response 400 / 404 / 500
-deactivate API_MS
+MS -> DB : Aggiorna record Plant per ID
+DB --> MS : Esito aggiornamento OK / errore
+MS --> BS : - Response 204 NO CONTENT \n- Error Response 400 / 404 / 500
+deactivate MS
 
-Service_BS --> API_BS : Restituisce Response 
-deactivate Service_BS
-
-API_BS --> C : - 204 NO CONTENT \n- 400 / 404 / 500 Error response
-deactivate API_BS
+BS --> C : - 204 NO CONTENT \n- 400 / 404 / 500 Error response
+deactivate BS
 
 @enduml

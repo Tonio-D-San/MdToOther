@@ -2,26 +2,24 @@
 
 ## **Architettura generale**
 
-L’architettura del sistema prevede chiamate tra diversi microservizi, secondo il seguente schema:
+L’architettura del sistema prevede chiamate tra i microservizi **Plant BS (borepurposingmgmt)** e **Plant MS (meRepurposingReg)**, secondo il seguente schema:
 
 ```
 Client
-↓ (REST API – chiamata al BS)
-PlantAPI (borepurposingmgmt)
-↓ (chiamata interna BS)
-PlantService (borepurposingmgmt)
-↓ (chiamata al MS)
-PlantControllerReadWrite (meRepurposingReg)
+↓ 
+Plant BS (borepurposingmgmt)
+↓ 
+Plant MS (meRepurposingReg)
 ↓
 Database
 ```
 
 ---
 
-Il modulo **Plant API** espone tre endpoint REST che permettono di:
+Il modulo **Plant BS** espone tre endpoint REST che permettono di:
 
-1. Recuperare i dettagli di un singolo **Plant** tramite il suo identificativo univoco.
-2. Effettuare una ricerca di un **Plant** in base a parametri di filtro.
+1. Recuperare i dettagli di un singolo **Plant**.
+2. Effettuare una ricerca di uno o più **Plant** in base a filtri di ricerca.
 3. Aggiornare le informazioni di un **Plant** esistente.
 
 ---
@@ -30,15 +28,15 @@ Il modulo **Plant API** espone tre endpoint REST che permettono di:
 
 ### **Descrizione**
 
-Consente di ottenere i dettagli di un Plant specifico tramite il suo identificativo (`id`).
+Consente di ottenere i dettagli di un Plant specifico tramite il suo identificativo univoco `id`.
 
 ### **Flusso operativo**
 
-1. Il **Client** effettua una richiesta `GET /v1/plants/{id}`.
-2. La **Plant API** riceve la richiesta e la inoltra al **Plant Service** per l’elaborazione.
-3. Il **Plant Service** prepara la richiesta remota impostando gli opportuni parametri e inoltra la chiamata verso il microservizio **Plant API (meRepurposingReg)**.
-4. Il microservizio interroga il **Database** per recuperare i dati dell’impianto corrispondente.
-5. I dati trovati vengono restituiti alla **Plant API**, che li inoltra al client.
+1. Il **Client** effettua una richiesta `GET /v1/plants/{id}` al microservizio **BS (borepurposingmgmt)**.
+2. Il **Plant BS** riceve la richiesta, la elabora impostando gli opportuni parametri e inoltra la chiamata verso il microservizio **MS (meRepurposingReg)**.
+3. Il microservizio **Plant MS** interroga il **Database** per recuperare i dati del Plant corrispondente all'identificativo univoco indicato.
+4. La risorsa trovata `PlantDetailDTOResponse` viene restituita a **MS** , che restituisce la risposta al microservizio **BS**.
+5. Il microservizio **Plant BS** inoltra la risposta e il JSON corrispondente al Client.
 
 ### **Risposte possibili**
 
@@ -53,15 +51,15 @@ Consente di ottenere i dettagli di un Plant specifico tramite il suo identificat
 
 ### **Descrizione**
 
-Consente di cercare uno o più Plant in base a criteri di filtro.
+Consente di cercare uno o più Plant in base alla configurazione di parametri di ricerca.
 
 ### **Flusso operativo**
 
-1. Il **Client** invia una richiesta `POST /v1/plants/search` con un body JSON conforme al modello `PlantSearchDTORequest`.
-2. La **Plant API** inoltra la richiesta al **Plant Service**, che gestisce la logica di instradamento.
-3. Il **Plant Service** invia la richiesta di ricerca al microservizio **Plant API (meRepurposingReg)**.
-4. Il microservizio esegue la query sul **Database** in base ai filtri ricevuti.
-5. I risultati vengono restituiti alla **Plant API**, che li inoltra al client.
+1. Il **Client** invia una richiesta `POST /v1/plants/search` contenente un body JSON conforme al modello `PlantSearchDTORequest`, al microservizio **BS (borepurposingmgmt)**.
+2. Il **Plant BS** riceve la richiesta, la elabora impostando gli opportuni parametri e inoltra la chiamata verso il microservizio **MS (meRepurposingReg)**.
+3. Il microservizio **Plant MS** esegue la query sul **Database** in base ai filtri di ricerca ricevuti.
+4. I risultati della ricerca vengono restituiti a **MS**, che inoltra al microservizio **BS** una response con un body JSON conforme al modello `WrapperPlantDTOResponse`.
+5. Il microservizio **Plant BS** inoltra la risposta e il JSON corrispondente al Client.
 
 ### **Risposte possibili**
 
@@ -74,15 +72,15 @@ Consente di cercare uno o più Plant in base a criteri di filtro.
 
 ### **Descrizione**
 
-Consente di aggiornare le informazioni di un Plant esistente.
+Consente di aggiornare le informazioni di un **Plant** esistente tramite il suo identificativo univoco `id`.
 
 ### **Flusso operativo**
 
-1. Il **Client** invia una richiesta `PATCH /v1/plants/{id}` contenente il body JSON `PlantUpdateDTORequest` con i campi da aggiornare.
-2. La **Plant API** riceve la richiesta e la inoltra al **Plant Service**.
-3. Il **Plant Service** invia la richiesta di aggiornamento al microservizio **Plant API (meRepurposingReg)**.
-4. Il microservizio esegue l’operazione di aggiornamento sul **Database**.
-5. La risposta viene restituita alla **Plant API**, che la inoltra al client.
+1. Il **Client** effettua una richiesta `PATCH /v1/plants/{id}` contenente un body JSON conforme al modello `PlantUpdateDTORequest` con i campi da aggiornare, al microservizio **BS (borepurposingmgmt)**.
+2. Il **Plant BS** riceve la richiesta, la elabora impostando gli opportuni parametri e inoltra la chiamata verso il microservizio **MS (meRepurposingReg)**.
+3. Il microservizio **Plant MS** interroga il **Database** aggiornando i campi indicati dal JSON Request.
+4. L'esito dell'aggiornamento viene restituito a **MS**, che inoltra la risposta al microservizio **BS**.
+5. Il microservizio **Plant BS** inoltra la risposta al Client.
 
 ### **Risposte possibili**
 
