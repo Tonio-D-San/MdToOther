@@ -8,10 +8,10 @@ participant "DocumentNode MS (meEcDocument)" as DMS
 database "Database" as DB
 
 == Richiesta di creazione ==
-C -> BS : POST /v1/projects\nBody: ProjectCreateDTORequest {name, plantId, country, type, ...}
+C -> BS : POST /v1/projects\nBody: ProjectCreateDTORequest
 activate BS
 
-BS -> MS : POST {meRepurposingRegEndPoint}/v1/projects\nBody: ProjectCreateDTORequest
+BS -> MS : POST {meRepurposingRegEndPoint}/v1/projects\nBody: ProjectCreateDTORequest {name, plantId, country, type, ...}
 activate MS
 
 MS -> DB : Inserisce nuovo record Project

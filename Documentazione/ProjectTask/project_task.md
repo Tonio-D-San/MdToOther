@@ -77,11 +77,20 @@ Consente di creare un nuovo **Project** all’interno del sistema.
 
 ### **Flusso operativo**
 
-1. Il **Client** invia una richiesta `POST /v1/projects` con un body JSON conforme al modello `ProjectCreateDTORequest` al microservizio **BS (borepurposingmgmt)**.
-2. Il **ProjectTask BS** inoltra la richiesta al **MS (meRepurposingReg)**, che inserisce un nuovo record nel **Database**.
-3. Il **MS** restituisce al **BS** un oggetto `IdentifierDTOResponse` contenente l’identificativo del nuovo progetto.
-4. Parallelamente, il **BS** avvia un flusso asincrono per la creazione del *workspace* associato al progetto, interagendo con il **DocumentNode MS (meEcDocument)** per la gestione del nodo documento e l’aggiornamento del `nodeId`.
-5. Una volta completato l’aggiornamento, la risposta viene inoltrata al **Client**.
+1. Una volta creato il progetto, il **BS** avvia il processo interno `CREATE_PROJECT_WORKSPACE`, responsabile di creare e collegare il *workspace documentale* al progetto.
+2. Il **BS** invoca una route interna `SEARCH_PROJECT_BY_ID`, che effettua una chiamata `GET {meRepurposingRegEndPoint}/v1/projects/{id}` verso il **MS**.
+3. Il **ProjectTask MS** interroga il **Database** per ottenere i dettagli completi del progetto.
+4. Il **MS** restituisce una risposta `200 OK` contenente `ProjectDetailDTOResponse {id, nodeId, name, plant, ...}`. In caso di errore vengono gestite risposte `400 / 404 / 500`.
+5. Se il progetto non ha ancora un `nodeId` valido, il **BS** comunica con il microservizio **DocumentNode MS (meEcDocument)**.
+6. Il **BS** invia una richiesta `POST /v1/business-workspaces` per creare il *workspace documentale* associato al progetto.
+7. Il **DocumentNode MS** crea il nodo nel **Database documentale** e restituisce una risposta `201 CREATED` contenente `IdentifierDTOResponse {id}`.
+8. Successivamente, il **BS** effettua una richiesta `GET /v1/documents/nodes/{id}` verso il **DocumentNode MS** per recuperare i dettagli del nodo appena creato.
+9. Se la chiamata ha esito positivo (`200 OK`), il campo `NODE_ID_PROPERTY` viene impostato con il valore `nodeId`.
+10. In caso di errore (`404 / 500`), viene impostato un valore di fallback `OT_ERROR`.
+11. Una volta recuperato il `nodeId`, il **BS** invoca una route interna `UPDATE_PROJECT_BY_ID_PROXY`, che effettua la chiamata `PATCH {meRepurposingRegEndPoint}/v1/projects/{projectId}`.
+12. Il body della richiesta è un oggetto `ProjectUpdateDTORequest { nodeId, name, onHold, ... }`.
+13. Il **ProjectTask MS** aggiorna il record `Project` nel **Database**, valorizzando il campo `nodeId` con quello appena ottenuto dal sistema documentale.
+14. Il **MS** restituisce un esito `204 NO CONTENT` o, in caso di errore, un codice `400 / 404 / 500`.
 
 ### **Risposte possibili**
 
