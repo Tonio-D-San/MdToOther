@@ -1,0 +1,28 @@
+@startuml
+title Flusso Project API - POST /v1/projects/search
+
+actor Client as C
+participant "Project BS (borepurposingmgmt)" as BS
+participant "Project MS (meRepurposingReg)" as MS
+database "Database" as DB
+
+C -> BS : POST /v1/projects/search\nBody: ProjectSearchDTORequest {ids[], name, developerId, projectType, ... }
+activate BS
+
+note right of BS
+HTTP_METHOD = POST
+CONTENT_TYPE = application/json
+end note
+
+BS -> MS : POST {meRepurposingRegEndPoint}/v1/projects/search \nRequest: ProjectSearchDTORequest { name, type, country, ids[], page, pageSize, ... }
+activate MS
+
+MS -> DB : Esegue query di ricerca su Project (applica filtri e paginazione)
+DB --> MS : Risultato ricerca
+MS --> BS : - JSON Response 200 OK: WrapperProjectDTOResponse { stats, items[] } \n- Error Response 500
+deactivate MS
+
+BS --> C : - 200 OK (JSON Response) \n- 500 Error Response
+deactivate BS
+
+@enduml
