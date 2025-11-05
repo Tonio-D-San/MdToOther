@@ -1,0 +1,53 @@
+@startuml
+title Flusso Project API - DELETE /v1/projects/{projectId}
+
+actor Client as C
+participant "Project BS (borepurposingmgmt)" as BS
+participant "Project MS (meRepurposingReg)" as MS
+participant "DocumentNode MS (meEcDocument)" as DMS
+database "Database" as DB
+
+== Richiesta di eliminazione ==
+C -> BS : DELETE /v1/projects/{projectId}
+activate BS
+
+note right of BS
+HTTP_METHOD = DELETE
+CONTENT_TYPE = application/json
+end note
+
+BS -> BS : Invoca route interna DELETE_PROJECT
+activate BS
+
+== Recupero dettagli progetto tramite projectId ==
+BS -> BS : Invoca route interna SEARCH_PROJECT_BY_ID
+BS -> MS : GET {meRepurposingRegEndPoint}/v1/projects/{id}
+activate MS
+MS -> DB : Query per ID progetto
+DB --> MS : ProjectDetailDTOResponse {id, nodeId, name, plant ...}
+MS --> BS : JSON response 200 OK: ProjectDetailDTOResponse \n- Error Response 400 / 404 / 500
+deactivate MS
+
+== Flusso di eliminazione principale ==
+BS -> BS : Invoca route interna DELETE_PROJECT_BY_ID
+BS -> MS : DELETE {meRepurposingRegEndPoint}/v1/projects/{projectId}
+
+activate MS
+MS -> DB : Query di eliminazione Project
+DB --> MS : Esito eliminazione OK / errore
+MS --> BS : - 204 NO CONTENT \n- 400 / 404 / 409 / 500 Error Response
+deactivate MS
+
+== Flusso asincrono: eliminazione nodo documento ==
+note right of BS
+Inizio del processo asincrono per eliminare il nodo documento associato al project eliminato
+end note
+
+BS -> DMS : DELETE_NODE
+activate DMS
+DMS -> DMS : {mceEcDocumentEndPoint}/v1/nodes/{id}
+DMS -> BS : Query di eliminazione Document Node
+deactivate DMS
+BS -> C : - 204 NO CONTENT \n- 400 / 404 / 409 / 500 Error Response
+deactivate BS
+@enduml
