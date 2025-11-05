@@ -1,0 +1,94 @@
+@startuml
+title Flusso Project API - PATCH /v1/projects/{projectId}
+
+actor Client as C
+participant "Project BS (borepurposingmgmt)" as BS
+participant "Project MS (meRepurposingReg)" as MS
+participant "DocumentNode MS (meEcDocument)" as DMS
+database "Database" as DB
+
+== Richiesta di aggiornamento ==
+C -> BS : PATCH /v1/projects/{projectId}\nBody: ProjectUpdateDTORequest { name, description, plant, type, ... }
+activate BS
+
+note right of BS
+Il JSON ProjectUpdateDTORequest viene utilizzato
+per aggiornare il singolo progetto
+tramite un proxy PATCH verso Project MS.
+end note
+
+note right of BS
+HTTP_METHOD = PATCH
+CONTENT_TYPE = application/json
+end note
+
+BS -> MS : PATCH {meRepurposingRegEndPoint}/v1/projects/{projectId}\nBody: ProjectUpdateDTORequest { name, description, plant, type, ... }
+activate MS
+
+MS -> DB : Aggiorna record Project corrispondente all’ID
+DB --> MS : Esito aggiornamento OK / errore
+MS --> BS : - 204 NO CONTENT \n- 400 / 404 / 409 / 500 Error Response
+deactivate MS
+
+== Flusso asincrono: aggiornamento nodo documento ==
+note right of BS
+Inizio del processo asincrono per l’aggiornamento
+del nodo documento associato al Project.
+end note
+
+BS -> BS : CHECK_UPDATE_NODE_FOR_UPDATE_PROJECT
+activate BS
+
+BS -> MS : GET {meRepurposingRegEndPoint}/v1/projects/{projectId}
+activate MS
+MS -> DB : Ricerca Project per ID
+DB --> MS : Esito ricerca OK / errore
+MS --> BS : - 200 OK JSON Response ProjectDetailDTOResponse { id, name, nodeId, plant.nodeId, ... } \n- 400 / 404 / 500 Error response
+deactivate MS
+
+== Aggiornamento metadati nodo ==
+BS -> DMS : UPDATE_METADATA_NODE
+activate DMS
+DMS -> DMS : PATCH /v2/documents/metadata/nodes/{nodeId}\nBody: UpdateMetadataNodeDTORequest { metadata[] }
+DMS --> BS : 2xx Success / 4xx / 5xx Error
+deactivate DMS
+
+== Ridenominazione nodo (se necessario) ==
+alt Node da rinominare
+    BS -> DMS : RENAME_NODE
+    activate DMS
+    DMS -> DMS : PUT /v1/documents/nodes/{nodeId}\nBody: UpdateNodeDTORequest { newValue, operationType = RENAME }
+    DMS --> BS : 2xx Success / 4xx / 5xx Error
+    deactivate DMS
+else Nessuna rinomina
+    note right of BS
+    Nessuna azione di rename richiesta.
+    end note
+end
+
+== Spostamento nodo (se necessario) ==
+alt Node da spostare
+    BS -> DMS : SEARCH_REPURPOSING_NODE_ID
+    activate DMS
+    DMS -> DMS : GET /v1/documents/nodes/{nodeId}/children
+    DMS --> BS : WrapperNodeChildrenDTOResponse { items[] }
+    deactivate DMS
+
+    BS -> DMS : MOVE_NODE
+    activate DMS
+    DMS -> DMS : PUT /v1/documents/nodes/{nodeId}\nBody: UpdateNodeDTORequest { newValue, operationType = MOVE }
+    DMS --> BS : 2xx Success / 4xx / 5xx Error
+    deactivate DMS
+else Nessuno spostamento necessario
+    note right of BS
+    Il nodo documento non richiede spostamenti.
+    end note
+end
+
+deactivate BS
+
+== Risposta al client ==
+BS --> C : - 204 NO CONTENT \n- 400 / 404 / 409 / 500 Error Response
+deactivate BS
+
+@enduml
