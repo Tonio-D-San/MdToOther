@@ -1,2 +1,5 @@
+openpyxl
+pandas
+python-dotenv
 pypandoc~=1.15
 plantuml~=0.3.0

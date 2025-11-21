@@ -16,26 +16,26 @@ def install_missing_packages():
     from pathlib import Path
     import urllib.request
     yes_no = True
-    for package in ["pypandoc", "plantuml", "six", "conda"]:
+    for package in ["pypandoc", "plantuml", "six"]:
         try:
             importlib.import_module(package)
         except ImportError:
             print(f"Libreria mancante: {package}.")
             subprocess.check_call([sys.executable, "-m", "pip", "install", package])
     librsvg_installed = False
-    try:
-        result = subprocess.run(
-            ["conda", "list", "librsvg"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-        if "librsvg" in result.stdout:
-            librsvg_installed = True
-            print("librsvg già installato con conda.")
-    except subprocess.CalledProcessError:
-        pass
+    # try:
+    #     result = subprocess.run(
+    #         ["conda", "list", "librsvg"],
+    #         stdout=subprocess.PIPE,
+    #         stderr=subprocess.PIPE,
+    #         text=True,
+    #         check=True
+    #     )
+    #     if "librsvg" in result.stdout:
+    #         librsvg_installed = True
+    #         print("librsvg già installato con conda.")
+    # except subprocess.CalledProcessError:
+    #     pass
 
     if not librsvg_installed:
         print("📦 librsvg non trovato.")
